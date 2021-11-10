@@ -14,8 +14,8 @@ import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Objects;
 import java.util.Scanner;
 
@@ -45,10 +45,8 @@ public class creStuController extends myClassController
     String stuAtt;
     String[] newStuds = HomePage.studs;
     File classText = new File("src/main/resources/com/tagui/classTest.txt");
-
-
-
-
+    StringBuilder tempClass = new StringBuilder();
+    String newStu;
 
     public void create(ActionEvent event) throws IOException
     {
@@ -57,18 +55,26 @@ public class creStuController extends myClassController
         stuBeh = behField.getText();
         stuSeat = Integer.parseInt(seatField.getText());
         stuAtt = attField.getText();
+        newStu = (stuName+","+String.valueOf(stuGpa)+","+stuBeh+","+String.valueOf(stuSeat)+","+stuAtt);
+        String tempStu = String.valueOf(newStuds[stuSeat-1]);//used for checking if a student is occupying the seat
 
-        String newStu = (stuName+","+String.valueOf(stuGpa)+","+stuBeh+","+String.valueOf(stuSeat)+","+stuAtt);
-        String tempStu = newStuds[stuSeat-1];//used for checking if a student is occupying the seat
-        StringBuilder tempClass = new StringBuilder();
-
-        if(tempStu != "No Student, 0.0, No Behavior, 0, No Attendance/")//if a student is already in the requested seat
+        //BIG NEST ALERT!
+        if(!Objects.equals(tempStu, "No Student, 0.0, No Behavior, 0, No Attendance"))//if a student is already in the requested seat
         {
             int ii = 0;
             while (ii<15)
-            {
-                if(newStuds[ii] == "No Student, 0.0, No Behavior, 0, No Attendance/")//find the next available spot
+            {//outer loop goes through each student in newStuds
+                if(Objects.equals(newStuds[ii], "No Student, 0.0, No Behavior, 0, No Attendance"))//find the next available spot
                 {
+                    Scanner sc2 = new Scanner(String.valueOf(tempStu));
+                    sc2.useDelimiter(",");
+                    String[] tempStuInfo = new String[5];
+                    for (int w = 0; w < 5; w++)
+                    {//inner loop fills a temporary student info array with ONE student's info
+                        tempStuInfo[w] = String.valueOf(sc2.next());
+                    }
+                    tempStuInfo[3] = String.valueOf(ii+1);//updates tempStu's seat
+                    tempStu = String.valueOf(tempStuInfo[0]+","+ tempStuInfo[1]+","+ tempStuInfo[2]+","+ tempStuInfo[3]+","+ tempStuInfo[4]);//re writes tempStu
                     newStuds[ii] = tempStu;//put old student in next available seat
                     newStuds[stuSeat-1] = newStu;//put new student in requested seat
                     break;
@@ -77,21 +83,32 @@ public class creStuController extends myClassController
             }
 
         }
-        else{newStuds[stuSeat-1] = newStu;}//if a student is not in the seat add new student
+        if (Objects.equals(tempStu,"No Student, 0.0, No Behavior, 0, No Attendance"))
+        {//if a student is not in the seat add new student to requested seat
+            newStuds[stuSeat-1] = newStu;
+        }
 
+        /*int p = 0;//just for testing if the array is being changed
+        while(p<15)
+        {
+            System.out.println((p+1)+": "+newStuds[p]);
+            p++;
+        }*/
 
+        FileWriter writer = new FileWriter(classText);
         int xx=0;
         while(xx<15)//recreates the class with the new student added
         {
-            if(newStuds[xx] == "No Student, 0.0, No Behavior, 0, No Attendance/")
+            if(Objects.equals(newStuds[xx], "No Student, 0.0, No Behavior, 0, No Attendance/"))
             {tempClass.append(newStuds[xx]);}else{tempClass.append(newStuds[xx]).append("/");}
             //no student already has a / and // breaks everything so this checks before adding a /
             xx++;
         }
 
-        PrintWriter writer = new PrintWriter(classText);
         writer.write(String.valueOf(tempClass));//rewrites the csv with the updated class
+        writer.flush();
         writer.close();
+        HomePage.studs = newStuds;
 
         // re calls the HomePage methods to open myClass, this time with the new class
         Parent myClassParent = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("myclass.fxml")));
@@ -102,12 +119,13 @@ public class creStuController extends myClassController
         /*for (int y = 0; y<15; y++)
         {//only used to fix null issue when creating new array in HomePage
             newStuds[y] = "No Student, 0.0, No Behavior, 0, No Attendance";
-        }*/
+        }
+        still useful to keep in case you want to empty the class and make it all No Student*/
 
         Scanner sc1 = new Scanner(classText);
         sc1.useDelimiter("/");
         int i = 0;
-        while (sc1.hasNext())//reads class and separates students and places them into newStuds array
+        while (sc1.hasNext())//reads class and separates students and places them into newStuds array, prolly dont need to do this again but it works
         {
             newStuds[i] = sc1.next();
             i++;
@@ -146,10 +164,5 @@ public class creStuController extends myClassController
         seat5Teen.setText(names[14]);
 
         window.show();
-
-
-
     }
-
-
 }
